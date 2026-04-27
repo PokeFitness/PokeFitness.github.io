@@ -1,2 +1,2 @@
 # PokeFitness.github.io
-PokeFitness
+PokeFitness Currently in beta
