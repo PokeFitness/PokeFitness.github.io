@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Circuit Walker v4</title>
+    <title>Circuit Walker Hybrid</title>
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
         #watch-face { width: 96vw; height: 96vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box; gap: 4px; }
         
-        /* Debug info helps you see if sensor is alive */
-        #debug { font-size: 8px; color: #444; position: absolute; top: 15%; }
+        #device-tag { font-size: 8px; color: #444; position: absolute; top: 12%; text-transform: uppercase; }
+        #debug { font-size: 8px; color: #444; position: absolute; top: 16%; }
         
         #food-bank { font-size: 12px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 8px; border-radius: 10px; }
         #top-stats { font-size: 10px; color: var(--pika-yellow); font-weight: bold; display: flex; gap: 8px; }
@@ -34,6 +34,7 @@
 </head>
 <body>
 
+<div id="device-tag">Detecting...</div>
 <div id="debug">Force: 0.0</div>
 
 <div id="watch-face">
@@ -59,10 +60,15 @@
 </div>
 
 <script>
-    let pet = JSON.parse(localStorage.getItem('pika_v4_final')) || {
+    let pet = JSON.parse(localStorage.getItem('pika_hybrid_v1')) || {
         h: 0, f: 80, z: 80, steps: 0, goal: 1000, 
         foodBank: 0, isSleeping: false, isMoving: false
     };
+
+    // Auto-detect Device Profile
+    const isMobile = /Android|iPhone/i.test(navigator.userAgent) && !/Wear/i.test(navigator.userAgent);
+    const THRESHOLD = isMobile ? 12.0 : 4.5; // High for pocket, low for wrist
+    document.getElementById('device-tag').innerText = isMobile ? "Phone Profile (12.0)" : "Watch Profile (4.5)";
 
     const REFILL_RATE = (100 / (5 * 60 * 60)); 
     const DECAY_RATE = (100 / (19 * 60 * 60)); 
@@ -96,7 +102,7 @@
             else img.src = 'moderatehappiness.png';
         }
         sleepBtn.disabled = (!pet.isSleeping && pet.isMoving);
-        localStorage.setItem('pika_v4_final', JSON.stringify(pet));
+        localStorage.setItem('pika_hybrid_v1', JSON.stringify(pet));
     }
 
     function toggleSleep() {
@@ -114,7 +120,7 @@
     }
 
     function initGoalMode() {
-        const userGoal = prompt("Goal:", "1000");
+        const userGoal = prompt("Steps to 100% Fit:", "1000");
         if (userGoal) {
             pet.goal = parseInt(userGoal);
             startSensors();
@@ -134,11 +140,9 @@
             let magnitude = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
             let delta = Math.abs(magnitude - lastMag);
             
-            // Debug: Show force on screen
             document.getElementById('debug').innerText = "Force: " + delta.toFixed(1);
 
-            // 4.5 is very sensitive for watches
-            if (delta > 4.5) {
+            if (delta > THRESHOLD) {
                 pet.isMoving = true;
                 clearTimeout(moveTimeout);
                 
