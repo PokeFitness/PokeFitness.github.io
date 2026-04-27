@@ -3,40 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PikaHunter Watch</title>
+    <title>PikaWatch OS</title>
     <style>
-        :root { --pika-yellow: #ffcc00; --bg: #000; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
+        :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         
-        #watch-face { width: 96vw; height: 96vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box; gap: 4px; }
+        body { 
+            margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; 
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; width: 100vw; overflow: hidden; transition: opacity 0.5s;
+        }
         
-        #step-info { font-size: 10px; color: var(--pika-yellow); font-weight: bold; display: flex; gap: 8px; }
-        #food-bank { font-size: 12px; color: #ff7675; margin-bottom: 2px; border: 1px solid #ff7675; padding: 2px 8px; border-radius: 10px; }
+        #watch-face { 
+            width: 96vw; height: 96vw; border-radius: 50%; 
+            display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; padding: 12px; box-sizing: border-box; gap: 5px; 
+        }
         
-        #pet-display { height: 25%; position: relative; display: flex; align-items: center; }
+        #top-stats { font-size: 10px; color: var(--pika-yellow); font-weight: bold; display: flex; gap: 8px; }
+        #food-bank { font-size: 12px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 8px; border-radius: 10px; margin-bottom: 2px; }
+        
+        #pet-display { height: 26%; position: relative; display: flex; align-items: center; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
-        #sleep-overlay { position: absolute; top: -10px; right: -20px; font-size: 18px; display: none; color: #74b9ff; animation: drift 2s infinite; }
+        
+        #sleep-overlay { 
+            position: absolute; top: -10px; right: -15px; font-size: 18px; 
+            display: none; color: var(--rest-blue); animation: drift 2s infinite; 
+        }
 
-        @keyframes drift { 0% { transform: translate(0,0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(10px, -15px); opacity: 0; } }
+        @keyframes drift { 
+            0% { transform: translate(0,0); opacity: 0; } 
+            50% { opacity: 1; } 
+            100% { transform: translate(8px, -12px); opacity: 0; } 
+        }
 
-        .stats-container { width: 80%; display: flex; flex-direction: column; gap: 3px; }
-        .bar-wrapper { display: flex; align-items: center; gap: 5px; font-size: 8px; }
-        .bar-bg { flex-grow: 1; height: 6px; background: #222; border-radius: 3px; border: 1px solid #444; overflow: hidden; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
+        .stats-container { width: 80%; display: flex; flex-direction: column; gap: 4px; }
+        .bar-wrapper { display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: bold; }
+        .bar-bg { flex-grow: 1; height: 7px; background: #222; border-radius: 4px; border: 1px solid #444; overflow: hidden; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s linear; }
 
-        .controls { display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 4px; margin-top: 4px; }
-        button { background: #222; border: 1px solid #555; color: white; padding: 8px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; width: 88%; gap: 4px; margin-top: 5px; }
+        button { 
+            background: #1a1a1a; border: 1px solid #444; color: white; 
+            padding: 9px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; 
+        }
         button:active:not(:disabled) { background: var(--pika-yellow); color: #000; }
         button:disabled { opacity: 0.2; }
         
-        .sensor-btn { grid-column: span 2; background: #1a4a1a; border-color: #00ff00; }
+        .sensor-btn { grid-column: span 2; background: #0c330c; border-color: #00ff00; }
     </style>
 </head>
 <body>
 
 <div id="watch-face">
     <div id="food-bank">🍎 x<span id="bank-count">0</span></div>
-    <div id="step-info">👟 <span id="cur-steps">0</span> / 🎯 <span id="goal-display">--</span></div>
+    <div id="top-stats">👟 <span id="cur-steps">0</span> / 🎯 <span id="goal-display">--</span></div>
 
     <div id="pet-display">
         <div id="sleep-overlay">Zzz</div>
@@ -46,27 +66,29 @@
     <div class="stats-container">
         <div class="bar-wrapper">FIT <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div></div>
         <div class="bar-wrapper">FD  <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div></div>
-        <div class="bar-wrapper">ZZ  <div class="bar-bg"><div id="z-bar" class="bar-fill" style="background:#74b9ff"></div></div></div>
+        <div class="bar-wrapper">ZZ  <div class="bar-bg"><div id="z-bar" class="bar-fill" style="background:var(--rest-blue)"></div></div></div>
     </div>
 
     <div class="controls">
         <button id="feed-btn" onclick="act('feed')">Eat (1)</button>
         <button id="sleep-btn" onclick="toggleSleep()">Rest</button>
-        <button id="sensor-toggle" class="sensor-btn" onclick="initGoalMode()">Set Goal</button>
+        <button id="setup-btn" class="sensor-btn" onclick="initGoalMode()">Set Goal & Start</button>
     </div>
 </div>
 
 <script>
-    let pet = JSON.parse(localStorage.getItem('pika_carryover_v1')) || {
+    // Configuration & State
+    let pet = JSON.parse(localStorage.getItem('pika_watch_master_v1')) || {
         h: 0, f: 80, z: 80, steps: 0, goal: 1000, 
-        foodBank: 0, 
-        isSleeping: false, isMoving: false
+        foodBank: 0, isSleeping: false, isMoving: false
     };
 
+    // Math: 5 hours to fill (100%), 19 hours to drain
     const REFILL_RATE = (100 / (5 * 60 * 60)); 
     const DECAY_RATE = (100 / (19 * 60 * 60)); 
 
     function updateUI() {
+        // Stats
         document.getElementById('h-bar').style.width = pet.h + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
         document.getElementById('z-bar').style.width = pet.z + '%';
@@ -77,28 +99,31 @@
         const img = document.getElementById('pet-img');
         const sleepBtn = document.getElementById('sleep-btn');
         const feedBtn = document.getElementById('feed-btn');
-        const sleepOverlay = document.getElementById('sleep-overlay');
+        const overlay = document.getElementById('sleep-overlay');
 
         if (pet.isSleeping) {
             img.src = 'sleep.png';
             sleepBtn.innerText = "Wake";
-            sleepOverlay.style.display = "block";
+            overlay.style.display = "block";
             document.body.style.opacity = "0.5";
             feedBtn.disabled = true;
         } else {
             sleepBtn.innerText = "Rest";
-            sleepOverlay.style.display = "none";
+            overlay.style.display = "none";
             document.body.style.opacity = "1";
-            // FEED BUTTON LOGIC: Disable if bank is empty OR if full
             feedBtn.disabled = (pet.foodBank <= 0 || pet.f >= 100);
             
+            // Visual Moods
             if (pet.h >= 100) img.src = 'adoration.png';
-            else if (pet.f < 25) img.src = 'annoyed.png';
+            else if (pet.f < 20) img.src = 'annoyed.png';
+            else if (pet.h < 20) img.src = 'pain.png';
             else img.src = 'moderatehappiness.png';
         }
 
+        // Rest is only allowed when totally still
         sleepBtn.disabled = (!pet.isSleeping && pet.isMoving);
-        localStorage.setItem('pika_carryover_v1', JSON.stringify(pet));
+
+        localStorage.setItem('pika_watch_master_v1', JSON.stringify(pet));
     }
 
     function toggleSleep() {
@@ -117,12 +142,12 @@
     }
 
     function initGoalMode() {
-        const userGoal = prompt("Daily Step Goal:", "1000");
-        if (userGoal) {
+        const userGoal = prompt("Steps to 100% Fit:", "1000");
+        if (userGoal && !isNaN(userGoal)) {
             pet.goal = parseInt(userGoal);
-            // We don't reset steps/bank here so they carry over if you just want to change goals
+            // We don't reset total steps so food bank carryover works
             startSensors();
-            document.getElementById('sensor-toggle').style.display = 'none';
+            document.getElementById('setup-btn').style.display = 'none';
             updateUI();
         }
     }
@@ -133,23 +158,28 @@
 
         window.addEventListener('devicemotion', (event) => {
             let acc = event.accelerationIncludingGravity;
+            if(!acc) return;
+
             let magnitude = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
+            let delta = Math.abs(magnitude - lastMag);
             
-            if (Math.abs(magnitude - lastMag) > 13) {
+            // Sensitivity set to 10 for Watch 4 wrist detection
+            if (delta > 10) {
                 pet.isMoving = true;
                 clearTimeout(moveTimeout);
                 
-                if (pet.isSleeping) pet.isSleeping = false;
+                if (pet.isSleeping) pet.isSleeping = false; // Auto-wake
 
                 pet.steps++;
                 
-                // 1. Goal Progress
+                // 1. FIT bar calculation
                 pet.h = Math.min(100, (pet.steps / pet.goal) * 100);
                 
-                // 2. EARN FOOD: Every 100 steps adds 1 Food Credit to the bank
-                if (pet.steps % 100 === 0) {
-                    pet.foodBank++;
-                }
+                // 2. Burn food: 1% every 25 steps
+                if (pet.steps % 25 === 0) pet.f = Math.max(0, pet.f - 1);
+                
+                // 3. Earn food: 1 Apple every 100 steps
+                if (pet.steps % 100 === 0) pet.foodBank++;
                 
                 updateUI();
 
@@ -159,19 +189,21 @@
                 }, 2000);
             }
             lastMag = magnitude;
-        });
+        }, true);
     }
 
+    // Engine: Passive stats update every 10 seconds
     setInterval(() => {
         if (pet.isSleeping) {
             pet.z = Math.min(100, pet.z + (REFILL_RATE * 10));
         } else {
             pet.z = Math.max(0, pet.z - (DECAY_RATE * 10));
-            pet.f = Math.max(0, pet.f - 0.2); // Slower passive drain
+            pet.f = Math.max(0, pet.f - 0.1); 
         }
         updateUI();
     }, 10000);
 
+    // Initial Load
     updateUI();
 </script>
 </body>
