@@ -2,6 +2,6 @@
 PokeFitness Currently in beta
 
 Todo:
-Celebration animation when step goal reached.
-More and better pokemon
-pokedex
+Celebration animation when step goal reached,
+More and better pokemon,
+pokedex,and more
