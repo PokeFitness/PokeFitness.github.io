@@ -3,60 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PikaWatch Linear Pro</title>
+    <title>Poke Fitness</title>
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
-        #watch-face { width: 96vw; height: 96vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box; gap: 4px; }
-        #device-tag { font-size: 8px; color: #555; position: absolute; top: 10%; text-transform: uppercase; }
-        #debug { font-size: 8px; color: #444; position: absolute; top: 14%; font-family: monospace; }
-        #food-bank { font-size: 12px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 8px; border-radius: 10px; }
-        #top-stats { font-size: 10px; color: var(--pika-yellow); font-weight: bold; display: flex; gap: 8px; }
-        #pet-display { height: 26%; position: relative; }
+        
+        #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; position: relative; }
+        
+        /* z-index ensuring buttons are always touchable */
+        .controls { position: relative; z-index: 100; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 6px; margin-top: 8px; }
+        
+        #debug { font-size: 8px; color: #444; position: absolute; top: 12%; pointer-events: none; }
+        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 8px; border-radius: 10px; pointer-events: none; }
+        #top-stats { font-size: 10px; color: var(--pika-yellow); font-weight: bold; pointer-events: none; margin: 2px 0; }
+        
+        /* prevent image from blocking clicks */
+        #pet-display { height: 25%; pointer-events: none; display: flex; align-items: center; justify-content: center; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
-        .stats-container { width: 80%; display: flex; flex-direction: column; gap: 4px; }
-        .bar-wrapper { display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: bold; }
-        .bar-bg { flex-grow: 1; height: 7px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
+
+        .stats-container { width: 75%; display: flex; flex-direction: column; gap: 3px; pointer-events: none; }
+        .bar-wrapper { display: flex; align-items: center; gap: 5px; font-size: 8px; font-weight: bold; }
+        .bar-bg { flex-grow: 1; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.2s linear; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; width: 88%; gap: 4px; margin-top: 5px; }
-        button { background: #151515; border: 1px solid #333; color: white; padding: 10px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; }
+
+        button { 
+            background: #222; border: 1px solid #444; color: white; 
+            padding: 12px 0; border-radius: 20px; font-size: 10px; 
+            text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        button:active { background: var(--pika-yellow); color: #000; border-color: #fff; }
         .sensor-btn { grid-column: span 2; background: #0c330c; border-color: #00ff00; }
     </style>
 </head>
 <body>
 
-<div id="device-tag">Detecting...</div>
-<div id="debug">Force: 0.0</div>
-
 <div id="watch-face">
+    <div id="debug">Force: 0.0</div>
     <div id="food-bank">🍎 x<span id="bank-count">0</span></div>
     <div id="top-stats">👟 <span id="cur-steps">0</span> / 🎯 <span id="goal-display">--</span></div>
-    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
+
+    <div id="pet-display">
+        <img id="pet-img" src="moderatehappiness.png">
+    </div>
+
     <div class="stats-container">
         <div class="bar-wrapper">FIT <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div></div>
         <div class="bar-wrapper">FD  <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div></div>
         <div class="bar-wrapper">ZZ  <div class="bar-bg"><div id="z-bar" class="bar-fill" style="background:var(--rest-blue)"></div></div></div>
     </div>
+
     <div class="controls">
-        <button onclick="act('feed')">Eat (1)</button>
+        <button id="feed-btn" onclick="actFeed()">Eat (1)</button>
         <button id="sleep-btn" onclick="toggleSleep()">Rest</button>
         <button id="setup-btn" class="sensor-btn" onclick="initGoalMode()">Set Goal & Start</button>
     </div>
 </div>
 
 <script>
-    let pet = JSON.parse(localStorage.getItem('pika_v6_pro')) || { h: 0, f: 80, z: 80, steps: 0, goal: 1000, foodBank: 0, isSleeping: false, isMoving: false };
-    let lastStepTime = 0;
-    
-    // Detect Profile
-    const isMobile = /Android|iPhone/i.test(navigator.userAgent) && !/Wear/i.test(navigator.userAgent);
-    
-    // ADJUST THESE IF STILL TOO SENSITIVE
-    const THRESHOLD = isMobile ? 22.0 : 5.0; // Bumped phone to 22 for strictness
-    const CADENCE_LIMIT = 450; // Milliseconds between steps
-    
-    document.getElementById('device-tag').innerText = isMobile ? "Phone (Linear Mode)" : "Watch (Linear Mode)";
+    // 1. Initial State
+    let pet = JSON.parse(localStorage.getItem('pika_v7_final')) || {
+        h: 0, f: 80, z: 80, steps: 0, goal: 1000, 
+        foodBank: 0, isSleeping: false
+    };
 
+    let lastStepTime = 0;
+    const isMobile = /Android|iPhone/i.test(navigator.userAgent) && !/Wear/i.test(navigator.userAgent);
+    const THRESHOLD = isMobile ? 22.0 : 5.0; 
+    const CADENCE_LIMIT = 400;
+
+    // 2. UI Refresh Function
     function updateUI() {
         document.getElementById('h-bar').style.width = pet.h + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
@@ -64,19 +79,52 @@
         document.getElementById('cur-steps').innerText = pet.steps;
         document.getElementById('goal-display').innerText = pet.goal;
         document.getElementById('bank-count').innerText = pet.foodBank;
-        localStorage.setItem('pika_v6_pro', JSON.stringify(pet));
+
+        const img = document.getElementById('pet-img');
+        if (pet.isSleeping) {
+            img.src = 'sleep.png';
+            document.body.style.opacity = "0.6";
+        } else {
+            document.body.style.opacity = "1";
+            if (pet.h >= 100) img.src = 'adoration.png';
+            else if (pet.f < 20) img.src = 'annoyed.png';
+            else if (pet.h < 20) img.src = 'pain.png';
+            else img.src = 'moderatehappiness.png';
+        }
+        localStorage.setItem('pika_v7_final', JSON.stringify(pet));
+    }
+
+    // 3. Separate Button Functions (Avoiding the 'act' naming conflict)
+    function actFeed() {
+        if (pet.foodBank > 0 && pet.f < 100) {
+            pet.foodBank--;
+            pet.f = Math.min(100, pet.f + 25);
+            updateUI();
+        } else {
+            console.log("Cannot feed: No apples or full.");
+        }
+    }
+
+    function toggleSleep() {
+        pet.isSleeping = !pet.isSleeping;
+        updateUI();
     }
 
     function initGoalMode() {
-        const goal = prompt("Step Goal:", "1000");
-        if(goal) { pet.goal = parseInt(goal); startSensors(); document.getElementById('setup-btn').style.display='none'; updateUI(); }
+        const goal = prompt("Set Daily Step Goal:", "1000");
+        if (goal) {
+            pet.goal = parseInt(goal);
+            startSensors();
+            document.getElementById('setup-btn').style.display = 'none';
+            updateUI();
+        }
     }
 
+    // 4. Sensor Logic
     function startSensors() {
         window.addEventListener('devicemotion', (event) => {
-            // Using LINEAR ACCELERATION (excludes gravity)
-            let acc = event.acceleration; 
-            if(!acc || acc.x === null) acc = event.accelerationIncludingGravity; // Fallback
+            let acc = event.acceleration || event.accelerationIncludingGravity;
+            if (!acc || acc.x === null) return;
 
             let magnitude = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
             let now = Date.now();
@@ -85,18 +133,31 @@
 
             if (magnitude > THRESHOLD && (now - lastStepTime) > CADENCE_LIMIT) {
                 lastStepTime = now;
+                if (pet.isSleeping) pet.isSleeping = false;
+
                 pet.steps++;
                 pet.h = Math.min(100, (pet.steps / pet.goal) * 100);
+                
                 if (pet.steps % 25 === 0) pet.f = Math.max(0, pet.f - 1);
                 if (pet.steps % 100 === 0) pet.foodBank++;
+                
                 updateUI();
             }
         }, true);
     }
 
-    function act(type) { if(pet.foodBank > 0) { pet.foodBank--; pet.f = Math.min(100, pet.f + 25); updateUI(); } }
-    function toggleSleep() { pet.isSleeping = !pet.isSleeping; updateUI(); }
-    
+    // Periodic stat decay
+    setInterval(() => {
+        if (!pet.isSleeping) {
+            pet.f = Math.max(0, pet.f - 0.2);
+            pet.z = Math.max(0, pet.z - 0.1);
+        } else {
+            pet.z = Math.min(100, pet.z + 0.5);
+        }
+        updateUI();
+    }, 10000);
+
+    // Initial Start
     updateUI();
 </script>
 </body>
