@@ -3,61 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poke Fitness Fix</title>
+    <title>Poke Fitness Pro</title>
     <style>
-        :root { --pika-yellow: #ffcc00; --bg: #000; }
+        :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; touch-action: manipulation; }
+        
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         
-        #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; margin-bottom: 2px; font-weight: bold; }
-        #top-stats { font-size: 11px; font-weight: bold; margin: 2px 0; }
-        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+        #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; font-weight: bold; pointer-events: none; }
+        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; }
+        #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; }
+        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
 
-        #pet-display { height: 24%; display: flex; align-items: center; justify-content: center; }
+        #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
+        
+        /* Zzz Animations */
+        #zzz-container { position: absolute; top: -5px; right: -15px; display: none; pointer-events: none; }
+        .zzz { color: var(--rest-blue); font-size: 14px; position: absolute; animation: z-float 2s infinite; opacity: 0; font-weight: bold; }
+        .z2 { animation-delay: 0.6s; }
+        .z3 { animation-delay: 1.2s; }
+
+        @keyframes z-float {
+            0% { transform: translate(0,0) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(10px, -15px) scale(1.2); opacity: 0; }
+        }
 
         .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; }
         .bar-wrapper { display: flex; align-items: center; gap: 6px; font-size: 8px; font-weight: bold; }
         .bar-bg { flex-grow: 1; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.2s linear; }
 
-        .controls { display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
-        button { background: #222; border: 1px solid #444; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; -webkit-appearance: none; }
-        button:active { background: var(--pika-yellow) !important; color: #000 !important; }
+        .controls { position: relative; z-index: 100; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
+        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; cursor: pointer; }
+        button:active { background: var(--pika-yellow); color: #000; }
         .sensor-btn { grid-column: span 2; background: #0c330c; border-color: #00ff00; }
-        
-        /* ERROR LOGGER (Invisible unless error occurs) */
-        #logger { position: absolute; bottom: 5%; font-size: 7px; color: red; width: 80%; text-align: center; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div id="watch-face">
     <div id="brand-tag">Poke Fitness</div>
-    <div id="top-stats">👟 <span id="cur-steps">0</span> / <span id="goal-display">1000</span></div>
-    <div id="mood-text">STATUS: INITIALIZING</div>
+    <div id="food-bank">🍎 x<span id="bank-count">0</span></div>
+    <div id="top-stats">👟 <span id="cur-steps">0</span> / <span id="goal-display">--</span></div>
+    <div id="mood-text">STATUS: NORMAL</div>
 
-    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
+    <div id="pet-display">
+        <div id="zzz-container">
+            <span class="zzz z1">z</span>
+            <span class="zzz z2">z</span>
+            <span class="zzz z3">z</span>
+        </div>
+        <img id="pet-img" src="moderatehappiness.png">
+    </div>
 
     <div class="stats-container">
         <div class="bar-wrapper">FIT <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div></div>
         <div class="bar-wrapper">FD  <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div></div>
-        <div class="bar-wrapper">ZZ  <div class="bar-bg"><div id="z-bar" class="bar-fill" style="background:#74b9ff"></div></div></div>
+        <div class="bar-wrapper">ZZ  <div class="bar-bg"><div id="z-bar" class="bar-fill" style="background:var(--rest-blue)"></div></div></div>
     </div>
 
     <div class="controls">
         <button id="feed-btn">Eat</button>
         <button id="sleep-btn">Rest</button>
-        <button id="setup-btn" class="sensor-btn">START SENSORS</button>
+        <button id="setup-btn" class="sensor-btn">Set Goal & Start</button>
     </div>
-    <div id="logger"></div>
 </div>
 
 <script>
-    // Log errors to the watch screen for debugging
-    window.onerror = function(msg) { document.getElementById('logger').innerText = msg; };
-
-    let pet = JSON.parse(localStorage.getItem('poke_fit_v9')) || {
+    let pet = JSON.parse(localStorage.getItem('poke_fit_v10')) || {
         h: 0, f: 80, z: 80, steps: 0, goal: 1000, foodBank: 0, isSleeping: false
     };
 
@@ -66,36 +81,40 @@
     const THRESHOLD = isMobile ? 18.0 : 5.0; 
 
     function updateUI() {
-        try {
-            document.getElementById('h-bar').style.width = pet.h + '%';
-            document.getElementById('f-bar').style.width = pet.f + '%';
-            document.getElementById('z-bar').style.width = pet.z + '%';
-            document.getElementById('cur-steps').innerText = pet.steps;
-            document.getElementById('goal-display').innerText = pet.goal;
-            document.getElementById('bank-count') ? document.getElementById('bank-count').innerText = pet.foodBank : null;
+        document.getElementById('h-bar').style.width = pet.h + '%';
+        document.getElementById('f-bar').style.width = pet.f + '%';
+        document.getElementById('z-bar').style.width = pet.z + '%';
+        document.getElementById('cur-steps').innerText = pet.steps;
+        document.getElementById('goal-display').innerText = pet.goal;
+        document.getElementById('bank-count').innerText = pet.foodBank;
 
-            const img = document.getElementById('pet-img');
-            const moodDiv = document.getElementById('mood-text');
-            const sleepBtn = document.getElementById('sleep-btn');
+        const img = document.getElementById('pet-img');
+        const moodDiv = document.getElementById('mood-text');
+        const sleepBtn = document.getElementById('sleep-btn');
+        const zzz = document.getElementById('zzz-container');
 
-            if (pet.isSleeping) {
-                img.src = 'sleep.png';
-                moodDiv.innerText = "STATUS: RESTING";
-                sleepBtn.innerText = "Wake";
-            } else {
-                sleepBtn.innerText = "Rest";
-                if (pet.h >= 100) { img.src = 'adoration.png'; moodDiv.innerText = "STATUS: CHAMPION"; }
-                else if (pet.f < 20) { img.src = 'annoyed.png'; moodDiv.innerText = "STATUS: STARVING"; }
-                else if (pet.h < 20) { img.src = 'pain.png'; moodDiv.innerText = "STATUS: SLUGGISH"; }
-                else { img.src = 'moderatehappiness.png'; moodDiv.innerText = "STATUS: HEALTHY"; }
-            }
-            localStorage.setItem('poke_fit_v9', JSON.stringify(pet));
-        } catch(e) { document.getElementById('logger').innerText = e.message; }
+        if (pet.isSleeping) {
+            img.src = 'sleep.png';
+            moodDiv.innerText = "STATUS: RESTING";
+            sleepBtn.innerText = "Wake";
+            zzz.style.display = "block";
+            document.body.style.opacity = "0.6";
+        } else {
+            sleepBtn.innerText = "Rest";
+            zzz.style.display = "none";
+            document.body.style.opacity = "1";
+            
+            if (pet.h >= 100) { img.src = 'adoration.png'; moodDiv.innerText = "STATUS: CHAMPION"; }
+            else if (pet.f < 20) { img.src = 'annoyed.png'; moodDiv.innerText = "STATUS: STARVING"; }
+            else if (pet.h < 20) { img.src = 'pain.png'; moodDiv.innerText = "STATUS: SLUGGISH"; }
+            else { img.src = 'moderatehappiness.png'; moodDiv.innerText = "STATUS: HEALTHY"; }
+        }
+        localStorage.setItem('poke_fit_v10', JSON.stringify(pet));
     }
 
-    // Attach listeners via JavaScript instead of onclick (more reliable)
+    // Fixed Button Listeners
     document.getElementById('feed-btn').addEventListener('click', () => {
-        if (!pet.isSleeping && pet.foodBank > 0) {
+        if (!pet.isSleeping && pet.foodBank > 0 && pet.f < 100) {
             pet.foodBank--;
             pet.f = Math.min(100, pet.f + 25);
             updateUI();
@@ -108,10 +127,13 @@
     });
 
     document.getElementById('setup-btn').addEventListener('click', function() {
-        // Remove requirement for prompt which can block script execution
-        this.style.display = 'none';
-        startSensors();
-        updateUI();
+        const goal = prompt("Steps to Goal:", "1000");
+        if (goal) {
+            pet.goal = parseInt(goal);
+            this.style.display = 'none';
+            startSensors();
+            updateUI();
+        }
     });
 
     function startSensors() {
@@ -126,6 +148,7 @@
                 if (pet.isSleeping) pet.isSleeping = false;
                 pet.steps++;
                 pet.h = Math.min(100, (pet.steps / pet.goal) * 100);
+                if (pet.steps % 25 === 0) pet.f = Math.max(0, pet.f - 1);
                 if (pet.steps % 100 === 0) pet.foodBank++;
                 updateUI();
             }
