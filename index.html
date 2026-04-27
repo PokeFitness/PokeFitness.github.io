@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poke Fitness</title>
+    <title>PokeFitnessBeta</title>
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
         #watch-face { width: 96vw; height: 96vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box; gap: 4px; }
         
-        #device-tag { font-size: 8px; color: #444; position: absolute; top: 12%; text-transform: uppercase; }
-        #debug { font-size: 8px; color: #444; position: absolute; top: 16%; }
+        #device-tag { font-size: 8px; color: #555; position: absolute; top: 10%; text-transform: uppercase; letter-spacing: 1px; }
+        #debug { font-size: 8px; color: #444; position: absolute; top: 14%; font-family: monospace; }
         
-        #food-bank { font-size: 12px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 8px; border-radius: 10px; }
+        #food-bank { font-size: 12px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 8px; border-radius: 10px; margin-bottom: 2px; }
         #top-stats { font-size: 10px; color: var(--pika-yellow); font-weight: bold; display: flex; gap: 8px; }
         #pet-display { height: 26%; position: relative; display: flex; align-items: center; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
@@ -22,19 +22,19 @@
 
         .stats-container { width: 80%; display: flex; flex-direction: column; gap: 4px; }
         .bar-wrapper { display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: bold; }
-        .bar-bg { flex-grow: 1; height: 7px; background: #222; border-radius: 4px; border: 1px solid #444; overflow: hidden; }
+        .bar-bg { flex-grow: 1; height: 7px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.2s linear; }
 
         .controls { display: grid; grid-template-columns: 1fr 1fr; width: 88%; gap: 4px; margin-top: 5px; }
-        button { background: #1a1a1a; border: 1px solid #444; color: white; padding: 10px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; }
+        button { background: #151515; border: 1px solid #333; color: white; padding: 10px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; }
         button:active:not(:disabled) { background: var(--pika-yellow); color: #000; }
-        button:disabled { opacity: 0.2; }
-        .sensor-btn { grid-column: span 2; background: #0c330c; border-color: #00ff00; }
+        button:disabled { opacity: 0.1; }
+        .sensor-btn { grid-column: span 2; background: #0c330c; border-color: #00ff00; margin-top: 2px; }
     </style>
 </head>
 <body>
 
-<div id="device-tag">Detecting...</div>
+<div id="device-tag">Detecting Hardware...</div>
 <div id="debug">Force: 0.0</div>
 
 <div id="watch-face">
@@ -60,15 +60,18 @@
 </div>
 
 <script>
-    let pet = JSON.parse(localStorage.getItem('pika_hybrid_v1')) || {
+    // State Tracking
+    let pet = JSON.parse(localStorage.getItem('pika_v5_final')) || {
         h: 0, f: 80, z: 80, steps: 0, goal: 1000, 
         foodBank: 0, isSleeping: false, isMoving: false
     };
 
-    // Auto-detect Device Profile
+    let lastStepTime = 0;
+    
+    // Auto-detect Device Profile (Samsung Phone vs Galaxy Watch)
     const isMobile = /Android|iPhone/i.test(navigator.userAgent) && !/Wear/i.test(navigator.userAgent);
-    const THRESHOLD = isMobile ? 12.0 : 4.5; // High for pocket, low for wrist
-    document.getElementById('device-tag').innerText = isMobile ? "Phone Profile (12.0)" : "Watch Profile (4.5)";
+    const THRESHOLD = isMobile ? 17.0 : 4.5; 
+    document.getElementById('device-tag').innerText = isMobile ? "Phone Profile" : "Watch Profile";
 
     const REFILL_RATE = (100 / (5 * 60 * 60)); 
     const DECAY_RATE = (100 / (19 * 60 * 60)); 
@@ -102,7 +105,7 @@
             else img.src = 'moderatehappiness.png';
         }
         sleepBtn.disabled = (!pet.isSleeping && pet.isMoving);
-        localStorage.setItem('pika_hybrid_v1', JSON.stringify(pet));
+        localStorage.setItem('pika_v5_final', JSON.stringify(pet));
     }
 
     function toggleSleep() {
@@ -139,17 +142,21 @@
 
             let magnitude = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
             let delta = Math.abs(magnitude - lastMag);
+            let now = Date.now();
             
             document.getElementById('debug').innerText = "Force: " + delta.toFixed(1);
 
-            if (delta > THRESHOLD) {
+            // Logic Gate: Threshold met AND enough time passed (Anti-Double-Count)
+            if (delta > THRESHOLD && (now - lastStepTime) > 350) {
                 pet.isMoving = true;
+                lastStepTime = now;
                 clearTimeout(moveTimeout);
                 
                 if (pet.isSleeping) pet.isSleeping = false;
 
                 pet.steps++;
                 pet.h = Math.min(100, (pet.steps / pet.goal) * 100);
+                
                 if (pet.steps % 25 === 0) pet.f = Math.max(0, pet.f - 1);
                 if (pet.steps % 100 === 0) pet.foodBank++;
                 
@@ -158,12 +165,13 @@
                 moveTimeout = setTimeout(() => {
                     pet.isMoving = false;
                     updateUI();
-                }, 1000);
+                }, 800);
             }
             lastMag = magnitude;
         }, true);
     }
 
+    // Background engine for Hunger and Rest bars
     setInterval(() => {
         if (pet.isSleeping) {
             pet.z = Math.min(100, pet.z + (REFILL_RATE * 10));
