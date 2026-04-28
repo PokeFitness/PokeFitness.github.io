@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Poke Fitness: Cloud Sync</title>
-    <script src="https://accounts.google.com/gsi/client" onload="initTokenClient()"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; touch-action: manipulation; }
@@ -12,33 +12,25 @@
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         
         #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; font-weight: bold; pointer-events: none; }
-        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; }
-        #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; }
-        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; pointer-events: none; }
+        #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; pointer-events: none; }
+        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; pointer-events: none; }
 
-        #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; }
+        #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; pointer-events: none; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
         
-        #zzz-container { position: absolute; top: -5px; right: -15px; display: none; pointer-events: none; }
-        .zzz { color: var(--rest-blue); font-size: 14px; position: absolute; animation: z-float 2s infinite; opacity: 0; font-weight: bold; }
-        .z2 { animation-delay: 0.6s; }
-        .z3 { animation-delay: 1.2s; }
-
-        @keyframes z-float {
-            0% { transform: translate(0,0) scale(0.5); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translate(10px, -15px) scale(1.2); opacity: 0; }
-        }
-
-        .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; }
-        .bar-wrapper { display: flex; align-items: center; gap: 6px; font-size: 8px; font-weight: bold; }
-        .bar-bg { flex-grow: 1; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
+        .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+        .bar-bg { width: 100%; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
 
-        .controls { position: relative; z-index: 100; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
-        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; cursor: pointer; }
-        button:active { background: var(--pika-yellow); color: #000; }
+        .controls { position: relative; z-index: 999; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
+        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        /* This prevents the "stuck" look by ensuring the active state only lasts during actual press */
+        button:active { background: var(--pika-yellow) !important; color: #000 !important; }
+        
         #sync-btn { grid-column: span 2; background: #0c330c; color: #0f0; border-color: #0f0; }
+        #error-log { position: absolute; bottom: 5%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -47,20 +39,13 @@
     <div id="brand-tag">Poke Fitness</div>
     <div id="food-bank">🍎 x<span id="bank-count">0</span></div>
     <div id="top-stats">👟 <span id="cur-steps">0</span> / <span id="goal-display">1000</span></div>
-    <div id="mood-text">STATUS: CONNECTING...</div>
+    <div id="mood-text">READY</div>
 
-    <div id="pet-display">
-        <div id="zzz-container">
-            <span class="zzz z1">z</span>
-            <span class="zzz z2">z</span>
-            <span class="zzz z3">z</span>
-        </div>
-        <img id="pet-img" src="moderatehappiness.png">
-    </div>
+    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
 
     <div class="stats-container">
-        <div class="bar-wrapper">FIT <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div></div>
-        <div class="bar-wrapper">FD  <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div></div>
+        <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div>
+        <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
     </div>
 
     <div class="controls">
@@ -68,43 +53,53 @@
         <button id="sleep-btn">Rest</button>
         <button id="sync-btn">Sync with Watch</button>
     </div>
+    <div id="error-log"></div>
 </div>
 
 <script>
-    // --- AUTH CONFIG ---
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read';
 
-    let pet = JSON.parse(localStorage.getItem('poke_fit_final_v11')) || {
+    let pet = JSON.parse(localStorage.getItem('poke_fit_v12')) || {
         steps: 0, goal: 1000, f: 80, foodBank: 0, isSleeping: false
     };
 
     let tokenClient;
     let accessToken = null;
 
-    function initTokenClient() {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: (response) => {
-                if (response.access_token) {
-                    accessToken = response.access_token;
-                    fetchOfficialSteps();
-                }
-            },
-        });
+    // 1. Error logging for debugging on watch
+    function log(msg) { document.getElementById('error-log').innerText = msg; console.log(msg); }
+
+    // 2. Initialize Google Client
+    window.onload = () => {
+        try {
+            if (typeof google !== 'undefined') {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: (tokenResponse) => {
+                        if (tokenResponse.access_token) {
+                            accessToken = tokenResponse.access_token;
+                            fetchOfficialSteps();
+                        }
+                    },
+                });
+                log("Google API Loaded");
+            } else {
+                log("Google Script blocked/missing");
+            }
+        } catch (e) { log("Init Error: " + e.message); }
         updateUI();
-    }
+    };
 
     async function fetchOfficialSteps() {
+        log("Fetching steps...");
         const midnight = new Date().setHours(0,0,0,0);
-        const now = Date.now();
-
         const body = {
             "aggregateBy": [{"dataTypeName": "com.google.step_count.delta"}],
             "bucketByTime": { "durationMillis": 86400000 },
             "startTimeMillis": midnight,
-            "endTimeMillis": now
+            "endTimeMillis": Date.now()
         };
 
         try {
@@ -114,82 +109,51 @@
                 body: JSON.stringify(body)
             });
             const data = await res.json();
+            const val = data.bucket[0].dataset[0].point[0]?.value[0]?.intVal || 0;
             
-            // Extract official step count
-            const points = data.bucket[0].dataset[0].point;
-            const stepCount = points.length > 0 ? points[0].value[0].intVal : 0;
-            
-            pet.steps = stepCount;
-            // Every 1000 official steps = 1 apple
-            pet.foodBank = Math.floor(stepCount / 1000);
-            
+            pet.steps = val;
+            pet.foodBank = Math.floor(val / 1000);
             updateUI();
-            console.log("Cloud Sync Successful");
-        } catch (e) {
-            console.error("Health Sync Failed", e);
-            alert("Sync Failed. Ensure API is enabled in Cloud Console.");
-        }
+            log("Sync Complete!");
+        } catch (e) { log("Fetch Error: Check Cloud Settings"); }
     }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
         document.getElementById('bank-count').innerText = pet.foodBank;
-        
         const hPercent = Math.min(100, (pet.steps / pet.goal) * 100);
         document.getElementById('h-bar').style.width = hPercent + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
 
         const img = document.getElementById('pet-img');
-        const moodDiv = document.getElementById('mood-text');
-        const sleepBtn = document.getElementById('sleep-btn');
-        const zzz = document.getElementById('zzz-container');
-
         if (pet.isSleeping) {
             img.src = 'sleep.png';
-            moodDiv.innerText = "STATUS: RESTING";
-            sleepBtn.innerText = "Wake";
-            zzz.style.display = "block";
-            document.body.style.opacity = "0.6";
+            document.getElementById('mood-text').innerText = "RESTING";
         } else {
-            sleepBtn.innerText = "Rest";
-            zzz.style.display = "none";
-            document.body.style.opacity = "1";
-            
-            if (hPercent >= 100) { img.src = 'adoration.png'; moodDiv.innerText = "STATUS: CHAMPION"; }
-            else if (pet.f < 20) { img.src = 'annoyed.png'; moodDiv.innerText = "STATUS: STARVING"; }
-            else if (hPercent < 20) { img.src = 'pain.png'; moodDiv.innerText = "STATUS: SLUGGISH"; }
-            else { img.src = 'moderatehappiness.png'; moodDiv.innerText = "STATUS: HEALTHY"; }
+            if (hPercent >= 100) img.src = 'adoration.png';
+            else if (pet.f < 20) img.src = 'annoyed.png';
+            else if (hPercent < 20) img.src = 'pain.png';
+            else img.src = 'moderatehappiness.png';
+            document.getElementById('mood-text').innerText = "HEALTHY";
         }
-        localStorage.setItem('poke_fit_final_v11', JSON.stringify(pet));
+        localStorage.setItem('poke_fit_v12', JSON.stringify(pet));
     }
 
-    // Button Listeners
-    document.getElementById('sync-btn').addEventListener('click', () => {
-        if (!accessToken) {
-            tokenClient.requestAccessToken({prompt: 'consent'});
-        } else {
-            fetchOfficialSteps();
+    // 3. Event Listeners
+    document.getElementById('sync-btn').onclick = () => {
+        if (!tokenClient) { log("Client not ready"); return; }
+        tokenClient.requestAccessToken({prompt: 'consent'});
+    };
+
+    document.getElementById('feed-btn').onclick = () => {
+        if (!pet.isSleeping && pet.foodBank > 0) {
+            pet.foodBank--; pet.f = Math.min(100, pet.f + 20); updateUI();
         }
-    });
+    };
 
-    document.getElementById('feed-btn').addEventListener('click', () => {
-        if (!pet.isSleeping && pet.foodBank > 0 && pet.f < 100) {
-            pet.foodBank--;
-            pet.f = Math.min(100, pet.f + 20);
-            updateUI();
-        }
-    });
-
-    document.getElementById('sleep-btn').addEventListener('click', () => {
-        pet.isSleeping = !pet.isSleeping;
-        updateUI();
-    });
-
-    // Background passive hunger
-    setInterval(() => {
-        if (!pet.isSleeping) pet.f = Math.max(0, pet.f - 1);
-        updateUI();
-    }, 60000);
+    document.getElementById('sleep-btn').onclick = () => {
+        pet.isSleeping = !pet.isSleeping; updateUI();
+    };
 
     updateUI();
 </script>
