@@ -10,7 +10,7 @@
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; touch-action: manipulation; }
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         
-        #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; font-weight: bold; pointer-events: none; }
+        #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; font-weight: bold; }
         #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; }
         #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; }
         #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
@@ -18,13 +18,6 @@
         #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
         
-        /* Zzz Animations */
-        #zzz-container { position: absolute; top: -5px; right: -15px; display: none; pointer-events: none; }
-        .zzz { color: var(--rest-blue); font-size: 14px; position: absolute; animation: z-float 2s infinite; opacity: 0; font-weight: bold; }
-        .z2 { animation-delay: 0.6s; }
-        .z3 { animation-delay: 1.2s; }
-        @keyframes z-float { 0% { transform: translate(0,0) scale(0.5); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(10px, -15px) scale(1.2); opacity: 0; } }
-
         .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; }
         .bar-bg { width: 100%; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
@@ -34,7 +27,7 @@
         button:active { background: var(--pika-yellow) !important; color: #000 !important; }
         #sync-btn { grid-column: span 2; background: #0c330c; color: #0f0; border-color: #0f0; }
         
-        #log-screen { position: absolute; bottom: 5%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; pointer-events: none; line-height: 1.2; }
+        #log-screen { position: absolute; bottom: 5%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -45,12 +38,7 @@
     <div id="top-stats">👟 <span id="cur-steps">0</span> / <span id="goal-display">1000</span></div>
     <div id="mood-text">READY</div>
 
-    <div id="pet-display">
-        <div id="zzz-container">
-            <span class="zzz z1">z</span><span class="zzz z2">z</span><span class="zzz z3">z</span>
-        </div>
-        <img id="pet-img" src="moderatehappiness.png">
-    </div>
+    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
 
     <div class="stats-container">
         <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div>
@@ -69,7 +57,7 @@
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read';
 
-    let pet = JSON.parse(localStorage.getItem('poke_fit_v14')) || {
+    let pet = JSON.parse(localStorage.getItem('poke_fit_v15')) || {
         steps: 0, goal: 1000, f: 80, foodBank: 0, isSleeping: false
     };
 
@@ -83,6 +71,8 @@
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
+                ux_mode: 'redirect', // CRITICAL: Fixes watch "Continue" hang
+                redirect_uri: window.location.href, 
                 callback: (res) => {
                     if (res.access_token) {
                         accessToken = res.access_token;
@@ -90,16 +80,27 @@
                     }
                 },
             });
+
+            // Check if we just returned from a redirect with a token
+            const hash = window.location.hash;
+            if (hash && hash.includes("access_token")) {
+                const params = new URLSearchParams(hash.replace("#", "?"));
+                accessToken = params.get("access_token");
+                fetchOfficialSteps();
+            }
+
             log("API Ready.");
         } catch (e) { log("Google Script Load Error."); }
         updateUI();
     };
 
     async function fetchOfficialSteps() {
-        log("Connecting to Health Cloud...");
-        const midnight = new Date().setHours(0,0,0,0);
+        log("Searching Cloud...");
         
-        // This query asks for ALL step sources today
+        // Timezone Fix: Find midnight in Southington/Local time
+        const now = new Date();
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        
         const body = {
             "aggregateBy": [{"dataTypeName": "com.google.step_count.delta"}],
             "bucketByTime": { "durationMillis": 86400000 },
@@ -115,7 +116,6 @@
             });
             const data = await res.json();
             
-            // Search every possible bucket Google returns
             let totalSteps = 0;
             if (data.bucket && data.bucket[0].dataset[0].point) {
                 data.bucket[0].dataset[0].point.forEach(p => {
@@ -127,10 +127,10 @@
             pet.foodBank = Math.floor(totalSteps / 1000);
             updateUI();
             
-            if (totalSteps > 0) log("Success: " + totalSteps + " steps!");
-            else log("Connected! But 0 steps found in Cloud.");
+            if (totalSteps > 0) log("Synced: " + totalSteps + " steps!");
+            else log("Connected! 0 steps found today.");
             
-        } catch (e) { log("Fetch Failed. Ensure Fitness API is Enabled."); }
+        } catch (e) { log("Sync Error. Check Fitness API."); }
     }
 
     function updateUI() {
@@ -139,29 +139,11 @@
         const hPercent = Math.min(100, (pet.steps / pet.goal) * 100);
         document.getElementById('h-bar').style.width = hPercent + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
-
-        const img = document.getElementById('pet-img');
-        const moodDiv = document.getElementById('mood-text');
-        const zzz = document.getElementById('zzz-container');
-
-        if (pet.isSleeping) {
-            img.src = 'sleep.png';
-            moodDiv.innerText = "STATUS: RESTING";
-            zzz.style.display = "block";
-            document.body.style.opacity = "0.6";
-        } else {
-            zzz.style.display = "none";
-            document.body.style.opacity = "1";
-            if (hPercent >= 100) { img.src = 'adoration.png'; moodDiv.innerText = "STATUS: CHAMPION"; }
-            else if (pet.f < 20) { img.src = 'annoyed.png'; moodDiv.innerText = "STATUS: STARVING"; }
-            else if (hPercent < 20) { img.src = 'pain.png'; moodDiv.innerText = "STATUS: SLUGGISH"; }
-            else { img.src = 'moderatehappiness.png'; moodDiv.innerText = "STATUS: HEALTHY"; }
-        }
-        localStorage.setItem('poke_fit_v14', JSON.stringify(pet));
+        localStorage.setItem('poke_fit_v15', JSON.stringify(pet));
     }
 
     document.getElementById('sync-btn').onclick = () => {
-        tokenClient.requestAccessToken({prompt: 'consent'});
+        tokenClient.requestAccessToken(); // This will redirect on watch
     };
 
     document.getElementById('feed-btn').onclick = () => {
