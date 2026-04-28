@@ -6,156 +6,96 @@
     <title>Poke Fitness: Cloud Sync</title>
     <script src="https://accounts.google.com/gsi/client"></script>
     <style>
-        :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; touch-action: manipulation; }
+        :root { --pika-yellow: #ffcc00; --bg: #000; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
-        
-        #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; font-weight: bold; }
-        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; }
-        #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; }
-        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
-
-        #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; }
-        #pet-img { max-height: 100%; image-rendering: pixelated; }
-        
-        .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; }
-        .bar-bg { width: 100%; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
+        #brand-tag { font-size: 10px; color: var(--pika-yellow); font-weight: bold; }
+        #top-stats { font-size: 11px; font-weight: bold; margin: 4px 0; }
+        #pet-display { height: 25%; margin: 10px 0; }
+        #pet-img { height: 100%; image-rendering: pixelated; }
+        .bar-bg { width: 70%; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; margin: 2px 0; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
-
-        .controls { position: relative; z-index: 100; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
-        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; -webkit-tap-highlight-color: transparent; }
-        button:active { background: var(--pika-yellow) !important; color: #000 !important; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
+        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; font-weight: bold; -webkit-tap-highlight-color: transparent; }
         #sync-btn { grid-column: span 2; background: #0c330c; color: #0f0; border-color: #0f0; }
-        
-        #log-screen { position: absolute; bottom: 5%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; pointer-events: none; }
+        #log-screen { position: absolute; bottom: 8%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="watch-face">
     <div id="brand-tag">Poke Fitness</div>
-    <div id="food-bank">🍎 x<span id="bank-count">0</span></div>
-    <div id="top-stats">👟 <span id="cur-steps">0</span> / <span id="goal-display">1000</span></div>
-    <div id="mood-text">READY</div>
-
+    <div id="top-stats">👟 <span id="cur-steps">0</span> / 1000</div>
     <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
-
-    <div class="stats-container">
-        <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div>
-        <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
-    </div>
-
+    <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#0f0"></div></div>
+    <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
     <div class="controls">
-        <button id="feed-btn">Eat</button>
-        <button id="sleep-btn">Rest</button>
+        <button id="feed-btn">Eat</button><button id="sleep-btn">Rest</button>
         <button id="sync-btn">Sync Official Steps</button>
     </div>
-    <div id="log-screen"></div>
+    <div id="log-screen">Initializing...</div>
 </div>
 
 <script>
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
-    const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read';
-
-    let pet = JSON.parse(localStorage.getItem('poke_fit_v15')) || {
-        steps: 0, goal: 1000, f: 80, foodBank: 0, isSleeping: false
-    };
-
+    let pet = JSON.parse(localStorage.getItem('poke_v15_1')) || { steps: 0, f: 80 };
     let tokenClient;
-    let accessToken = null;
 
     function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
     window.onload = () => {
-        try {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                ux_mode: 'redirect', // CRITICAL: Fixes watch "Continue" hang
-                redirect_uri: window.location.href, 
-                callback: (res) => {
-                    if (res.access_token) {
-                        accessToken = res.access_token;
-                        fetchOfficialSteps();
-                    }
-                },
-            });
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/fitness.activity.read',
+            ux_mode: 'redirect',
+            redirect_uri: window.location.href
+        });
 
-            // Check if we just returned from a redirect with a token
-            const hash = window.location.hash;
-            if (hash && hash.includes("access_token")) {
-                const params = new URLSearchParams(hash.replace("#", "?"));
-                accessToken = params.get("access_token");
-                fetchOfficialSteps();
-            }
-
-            log("API Ready.");
-        } catch (e) { log("Google Script Load Error."); }
+        // Check if we just got back from the "Continue" screen
+        const fragment = new URLSearchParams(window.location.hash.substring(1));
+        const token = fragment.get('access_token');
+        if (token) {
+            log("Token found! Fetching data...");
+            fetchSteps(token);
+        } else {
+            log("Ready to Sync.");
+        }
         updateUI();
     };
 
-    async function fetchOfficialSteps() {
-        log("Searching Cloud...");
-        
-        // Timezone Fix: Find midnight in Southington/Local time
-        const now = new Date();
-        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        
-        const body = {
-            "aggregateBy": [{"dataTypeName": "com.google.step_count.delta"}],
-            "bucketByTime": { "durationMillis": 86400000 },
-            "startTimeMillis": midnight,
-            "endTimeMillis": Date.now()
-        };
-
+    async function fetchSteps(token) {
+        const midnight = new Date().setHours(0,0,0,0);
         try {
             const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    "aggregateBy": [{"dataTypeName": "com.google.step_count.delta"}],
+                    "bucketByTime": { "durationMillis": 86400000 },
+                    "startTimeMillis": midnight, "endTimeMillis": Date.now()
+                })
             });
             const data = await res.json();
-            
-            let totalSteps = 0;
-            if (data.bucket && data.bucket[0].dataset[0].point) {
-                data.bucket[0].dataset[0].point.forEach(p => {
-                    totalSteps += p.value[0].intVal || 0;
-                });
-            }
-
-            pet.steps = totalSteps;
-            pet.foodBank = Math.floor(totalSteps / 1000);
+            const steps = data.bucket[0].dataset[0].point[0]?.value[0]?.intVal || 0;
+            pet.steps = steps;
             updateUI();
-            
-            if (totalSteps > 0) log("Synced: " + totalSteps + " steps!");
-            else log("Connected! 0 steps found today.");
-            
-        } catch (e) { log("Sync Error. Check Fitness API."); }
+            log("Sync Success: " + steps + " steps");
+            // Clear the hash so it doesn't re-sync on refresh
+            window.history.replaceState(null, null, window.location.pathname);
+        } catch (e) { log("Fetch Error."); }
     }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
-        document.getElementById('bank-count').innerText = pet.foodBank;
-        const hPercent = Math.min(100, (pet.steps / pet.goal) * 100);
-        document.getElementById('h-bar').style.width = hPercent + '%';
+        document.getElementById('h-bar').style.width = Math.min(100, (pet.steps/1000)*100) + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
-        localStorage.setItem('poke_fit_v15', JSON.stringify(pet));
+        localStorage.setItem('poke_v15_1', JSON.stringify(pet));
     }
 
     document.getElementById('sync-btn').onclick = () => {
-        tokenClient.requestAccessToken(); // This will redirect on watch
+        log("Redirecting...");
+        tokenClient.requestAccessToken();
     };
-
-    document.getElementById('feed-btn').onclick = () => {
-        if (!pet.isSleeping && pet.foodBank > 0) {
-            pet.foodBank--; pet.f = Math.min(100, pet.f + 25); updateUI();
-        }
-    };
-
-    document.getElementById('sleep-btn').onclick = () => {
-        pet.isSleeping = !pet.isSleeping; updateUI();
-    };
-
     updateUI();
 </script>
 </body>
