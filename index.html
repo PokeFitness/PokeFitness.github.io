@@ -8,29 +8,33 @@
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; --rest-blue: #74b9ff; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; touch-action: manipulation; }
-        
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         
         #brand-tag { font-size: 10px; color: var(--pika-yellow); text-transform: uppercase; font-weight: bold; pointer-events: none; }
-        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; pointer-events: none; }
-        #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; pointer-events: none; }
-        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; pointer-events: none; }
+        #food-bank { font-size: 11px; color: #ff7675; border: 1px solid #ff7675; padding: 1px 10px; border-radius: 12px; margin: 2px 0; }
+        #top-stats { font-size: 11px; font-weight: bold; margin-bottom: 2px; }
+        #mood-text { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
 
-        #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        #pet-display { height: 24%; position: relative; display: flex; align-items: center; justify-content: center; }
         #pet-img { max-height: 100%; image-rendering: pixelated; }
         
-        .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+        /* Zzz Animations */
+        #zzz-container { position: absolute; top: -5px; right: -15px; display: none; pointer-events: none; }
+        .zzz { color: var(--rest-blue); font-size: 14px; position: absolute; animation: z-float 2s infinite; opacity: 0; font-weight: bold; }
+        .z2 { animation-delay: 0.6s; }
+        .z3 { animation-delay: 1.2s; }
+        @keyframes z-float { 0% { transform: translate(0,0) scale(0.5); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(10px, -15px) scale(1.2); opacity: 0; } }
+
+        .stats-container { width: 75%; display: flex; flex-direction: column; gap: 4px; }
         .bar-bg { width: 100%; height: 6px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
 
-        .controls { position: relative; z-index: 999; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
-        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
-        
-        /* This prevents the "stuck" look by ensuring the active state only lasts during actual press */
+        .controls { position: relative; z-index: 100; display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 8px; margin-top: 10px; }
+        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 20px; font-size: 10px; text-transform: uppercase; font-weight: bold; -webkit-tap-highlight-color: transparent; }
         button:active { background: var(--pika-yellow) !important; color: #000 !important; }
-        
         #sync-btn { grid-column: span 2; background: #0c330c; color: #0f0; border-color: #0f0; }
-        #error-log { position: absolute; bottom: 5%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; pointer-events: none; }
+        
+        #log-screen { position: absolute; bottom: 5%; font-size: 7px; color: #ff4757; width: 80%; text-align: center; pointer-events: none; line-height: 1.2; }
     </style>
 </head>
 <body>
@@ -41,7 +45,12 @@
     <div id="top-stats">👟 <span id="cur-steps">0</span> / <span id="goal-display">1000</span></div>
     <div id="mood-text">READY</div>
 
-    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
+    <div id="pet-display">
+        <div id="zzz-container">
+            <span class="zzz z1">z</span><span class="zzz z2">z</span><span class="zzz z3">z</span>
+        </div>
+        <img id="pet-img" src="moderatehappiness.png">
+    </div>
 
     <div class="stats-container">
         <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#00ff00"></div></div>
@@ -51,50 +60,46 @@
     <div class="controls">
         <button id="feed-btn">Eat</button>
         <button id="sleep-btn">Rest</button>
-        <button id="sync-btn">Sync with Watch</button>
+        <button id="sync-btn">Sync Official Steps</button>
     </div>
-    <div id="error-log"></div>
+    <div id="log-screen"></div>
 </div>
 
 <script>
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read';
 
-    let pet = JSON.parse(localStorage.getItem('poke_fit_v12')) || {
+    let pet = JSON.parse(localStorage.getItem('poke_fit_v14')) || {
         steps: 0, goal: 1000, f: 80, foodBank: 0, isSleeping: false
     };
 
     let tokenClient;
     let accessToken = null;
 
-    // 1. Error logging for debugging on watch
-    function log(msg) { document.getElementById('error-log').innerText = msg; console.log(msg); }
+    function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
-    // 2. Initialize Google Client
     window.onload = () => {
         try {
-            if (typeof google !== 'undefined') {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID,
-                    scope: SCOPES,
-                    callback: (tokenResponse) => {
-                        if (tokenResponse.access_token) {
-                            accessToken = tokenResponse.access_token;
-                            fetchOfficialSteps();
-                        }
-                    },
-                });
-                log("Google API Loaded");
-            } else {
-                log("Google Script blocked/missing");
-            }
-        } catch (e) { log("Init Error: " + e.message); }
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (res) => {
+                    if (res.access_token) {
+                        accessToken = res.access_token;
+                        fetchOfficialSteps();
+                    }
+                },
+            });
+            log("API Ready.");
+        } catch (e) { log("Google Script Load Error."); }
         updateUI();
     };
 
     async function fetchOfficialSteps() {
-        log("Fetching steps...");
+        log("Connecting to Health Cloud...");
         const midnight = new Date().setHours(0,0,0,0);
+        
+        // This query asks for ALL step sources today
         const body = {
             "aggregateBy": [{"dataTypeName": "com.google.step_count.delta"}],
             "bucketByTime": { "durationMillis": 86400000 },
@@ -109,13 +114,23 @@
                 body: JSON.stringify(body)
             });
             const data = await res.json();
-            const val = data.bucket[0].dataset[0].point[0]?.value[0]?.intVal || 0;
             
-            pet.steps = val;
-            pet.foodBank = Math.floor(val / 1000);
+            // Search every possible bucket Google returns
+            let totalSteps = 0;
+            if (data.bucket && data.bucket[0].dataset[0].point) {
+                data.bucket[0].dataset[0].point.forEach(p => {
+                    totalSteps += p.value[0].intVal || 0;
+                });
+            }
+
+            pet.steps = totalSteps;
+            pet.foodBank = Math.floor(totalSteps / 1000);
             updateUI();
-            log("Sync Complete!");
-        } catch (e) { log("Fetch Error: Check Cloud Settings"); }
+            
+            if (totalSteps > 0) log("Success: " + totalSteps + " steps!");
+            else log("Connected! But 0 steps found in Cloud.");
+            
+        } catch (e) { log("Fetch Failed. Ensure Fitness API is Enabled."); }
     }
 
     function updateUI() {
@@ -126,28 +141,32 @@
         document.getElementById('f-bar').style.width = pet.f + '%';
 
         const img = document.getElementById('pet-img');
+        const moodDiv = document.getElementById('mood-text');
+        const zzz = document.getElementById('zzz-container');
+
         if (pet.isSleeping) {
             img.src = 'sleep.png';
-            document.getElementById('mood-text').innerText = "RESTING";
+            moodDiv.innerText = "STATUS: RESTING";
+            zzz.style.display = "block";
+            document.body.style.opacity = "0.6";
         } else {
-            if (hPercent >= 100) img.src = 'adoration.png';
-            else if (pet.f < 20) img.src = 'annoyed.png';
-            else if (hPercent < 20) img.src = 'pain.png';
-            else img.src = 'moderatehappiness.png';
-            document.getElementById('mood-text').innerText = "HEALTHY";
+            zzz.style.display = "none";
+            document.body.style.opacity = "1";
+            if (hPercent >= 100) { img.src = 'adoration.png'; moodDiv.innerText = "STATUS: CHAMPION"; }
+            else if (pet.f < 20) { img.src = 'annoyed.png'; moodDiv.innerText = "STATUS: STARVING"; }
+            else if (hPercent < 20) { img.src = 'pain.png'; moodDiv.innerText = "STATUS: SLUGGISH"; }
+            else { img.src = 'moderatehappiness.png'; moodDiv.innerText = "STATUS: HEALTHY"; }
         }
-        localStorage.setItem('poke_fit_v12', JSON.stringify(pet));
+        localStorage.setItem('poke_fit_v14', JSON.stringify(pet));
     }
 
-    // 3. Event Listeners
     document.getElementById('sync-btn').onclick = () => {
-        if (!tokenClient) { log("Client not ready"); return; }
         tokenClient.requestAccessToken({prompt: 'consent'});
     };
 
     document.getElementById('feed-btn').onclick = () => {
         if (!pet.isSleeping && pet.foodBank > 0) {
-            pet.foodBank--; pet.f = Math.min(100, pet.f + 20); updateUI();
+            pet.foodBank--; pet.f = Math.min(100, pet.f + 25); updateUI();
         }
     };
 
