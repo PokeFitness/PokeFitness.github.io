@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Poke Fitness</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 2px solid #222; }
-        #brand-tag { font-size: 10px; color: var(--pika-yellow); font-weight: bold; margin-top: 10px; }
+        #brand-tag { font-size: 10px; color: var(--pika-yellow); font-weight: bold; text-transform: uppercase; margin-top: 10px; }
         #top-stats { font-size: 11px; font-weight: bold; margin: 5px 0; }
         #pet-display { height: 28%; margin: 5px 0; }
         #pet-img { height: 100%; image-rendering: pixelated; }
@@ -31,49 +30,46 @@
     <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
     <div class="controls">
         <button onclick="feed()">Eat</button><button onclick="log('Resting...')">Rest</button>
-        <button id="sync-btn">Sync Official Steps</button>
+        <button id="sync-btn" onclick="startSync()">Sync Official Steps</button>
     </div>
-    <div id="log-screen">Initializing...</div>
+    <div id="log-screen">Ready</div>
 </div>
 
 <script>
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const REDIRECT_URI = 'https://pokefitness.github.io/';
-    let pet = JSON.parse(localStorage.getItem('poke_v19')) || { steps: 0, f: 80 };
-    let tokenClient;
+    let pet = JSON.parse(localStorage.getItem('poke_v20')) || { steps: 0, f: 80 };
 
     function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
-    // THE FIX: Manually grab the token from the URL the second the page loads
-    function checkUrlForToken() {
-        const params = new URLSearchParams(window.location.hash.replace('#', '?'));
-        const token = params.get('access_token');
-        if (token) {
-            log("Token found! Syncing steps...");
-            fetchSteps(token);
-            // Cleanup the URL so it doesn't loop
-            window.history.replaceState(null, null, window.location.pathname);
-            return true;
-        }
-        return false;
-    }
-
     window.onload = () => {
-        if (!checkUrlForToken()) {
-            log("Ready to Sync.");
-        }
-        
-        // Setup client for the NEXT time you click the button
-        if (typeof google !== 'undefined') {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/fitness.activity.read',
-                ux_mode: 'redirect',
-                redirect_uri: REDIRECT_URI
-            });
+        // CHECK URL FOR DATA IMMEDIATELY
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const token = params.get('access_token');
+
+        if (token) {
+            log("Syncing...");
+            fetchSteps(token);
+            // Clear URL so we don't sync twice
+            window.history.replaceState(null, null, window.location.pathname);
         }
         updateUI();
     };
+
+    function startSync() {
+        log("Redirecting...");
+        // This is the "Simple Way": A direct browser link. 
+        // No libraries, no complex scripts, just a direct jump to Google.
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${CLIENT_ID}&` +
+            `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+            `response_type=token&` +
+            `scope=https://www.googleapis.com/auth/fitness.activity.read&` +
+            `prompt=consent`;
+        
+        window.location.href = authUrl;
+    }
 
     async function fetchSteps(token) {
         const midnight = new Date().setHours(0,0,0,0);
@@ -92,28 +88,15 @@
             pet.steps = steps;
             updateUI();
             log("Sync Success: " + steps);
-        } catch (e) { 
-            log("Fetch Error."); 
-        }
+        } catch (e) { log("Error fetching data."); }
     }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
         document.getElementById('h-bar').style.width = Math.min(100, (pet.steps/1000)*100) + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
-        localStorage.setItem('poke_v19', JSON.stringify(pet));
+        localStorage.setItem('poke_v20', JSON.stringify(pet));
     }
-
-    document.getElementById('sync-btn').onclick = () => {
-        log("Redirecting...");
-        if (tokenClient) {
-            tokenClient.requestAccessToken({ prompt: 'consent' });
-        } else {
-            // Fallback for when Google script loads slow
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=https://www.googleapis.com/auth/fitness.activity.read&prompt=consent`;
-            window.location.href = authUrl;
-        }
-    };
 
     function feed() { pet.f = Math.min(100, pet.f + 10); updateUI(); }
 </script>
