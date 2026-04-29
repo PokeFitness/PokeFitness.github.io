@@ -9,21 +9,16 @@
         :root { --pika-yellow: #ffcc00; --bg: #000; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #222; }
-        
         #brand-tag { font-size: 10px; color: var(--pika-yellow); font-weight: bold; text-transform: uppercase; margin-top: 10px; }
         #top-stats { font-size: 11px; font-weight: bold; margin: 5px 0; }
-        
         #pet-display { height: 28%; margin: 5px 0; display: flex; align-items: center; justify-content: center; }
         #pet-img { height: 100%; image-rendering: pixelated; }
-        
         .bar-bg { width: 70%; height: 8px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; margin: 2px 0; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.8s ease; }
-
         .controls { display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 10px; margin-top: 15px; }
-        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 25px; font-size: 10px; font-weight: bold; -webkit-tap-highlight-color: transparent; }
-        
+        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 25px; font-size: 10px; font-weight: bold; }
         #sync-btn { grid-column: span 2; background: #0c330c; color: #0f0; border: 1px solid #0f0; }
-        #log-screen { position: absolute; bottom: 10%; font-size: 8px; color: #ff4757; width: 80%; text-align: center; font-family: monospace; }
+        #log-screen { position: absolute; bottom: 10%; font-size: 8px; color: #ff4757; width: 80%; text-align: center; }
     </style>
 </head>
 <body>
@@ -31,34 +26,28 @@
 <div id="watch-face">
     <div id="brand-tag">Poke Fitness</div>
     <div id="top-stats">👟 <span id="cur-steps">0</span> / 1000</div>
-    
-    <div id="pet-display">
-        <img id="pet-img" src="moderatehappiness.png">
-    </div>
-
+    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
     <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#0f0"></div></div>
     <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
-
     <div class="controls">
         <button id="feed-btn">Eat</button>
         <button id="sleep-btn">Rest</button>
         <button id="sync-btn">Sync Official Steps</button>
     </div>
-    
     <div id="log-screen">Initializing...</div>
 </div>
 
 <script>
+    // MATCH THIS TO YOUR GOOGLE CLOUD CONSOLE EXACTLY
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const REDIRECT_URI = 'https://pokefitness.github.io/'; 
     
-    let pet = JSON.parse(localStorage.getItem('poke_v17_final')) || { steps: 0, f: 80 };
+    let pet = JSON.parse(localStorage.getItem('poke_v18')) || { steps: 0, f: 80 };
     let tokenClient;
 
     function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
     window.onload = () => {
-        // 1. Initialize the Google Client
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/fitness.activity.read',
@@ -66,18 +55,13 @@
             redirect_uri: REDIRECT_URI
         });
 
-        // 2. THE FIX: Look for the token in the URL hash (happens after Redirect)
-        const urlParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-        const returnedToken = urlParams.get('access_token');
+        // Check URL for returned access token
+        const fragment = new URLSearchParams(window.location.hash.substring(1));
+        const token = fragment.get('access_token');
 
-        if (returnedToken) {
-            log("Token Received! Syncing...");
-            // Small delay to ensure browser stability
-            setTimeout(() => {
-                fetchSteps(returnedToken);
-            }, 300);
-            
-            // Clean the URL hash so it doesn't try to re-process on refresh
+        if (token) {
+            log("Token Found! Syncing...");
+            fetchSteps(token);
             window.history.replaceState(null, null, window.location.pathname);
         } else {
             log("Ready to Sync.");
@@ -86,19 +70,11 @@
     };
 
     async function fetchSteps(token) {
-        log("Accessing Fitness Cloud...");
-        
-        // Calculate Midnight in your local timezone (Southington)
-        const now = new Date();
-        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
+        const midnight = new Date().setHours(0,0,0,0);
         try {
             const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json' 
-                },
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     "aggregateBy": [{ "dataTypeName": "com.google.step_count.delta" }],
                     "bucketByTime": { "durationMillis": 86400000 },
@@ -106,35 +82,19 @@
                     "endTimeMillis": Date.now()
                 })
             });
-
             const data = await res.json();
-            
-            let total = 0;
-            // Google's data structure is deeply nested; we check every level
-            if (data.bucket && data.bucket[0] && data.bucket[0].dataset[0].point[0]) {
-                total = data.bucket[0].dataset[0].point[0].value[0].intVal || 0;
-            }
-
+            let total = data.bucket[0].dataset[0].point[0]?.value[0]?.intVal || 0;
             pet.steps = total;
             updateUI();
-            
-            if (total > 0) {
-                log("Sync Success: " + total + " steps");
-            } else {
-                log("Connected! 0 steps in Cloud today.");
-            }
-
-        } catch (e) {
-            log("Fetch Error. Try Syncing again.");
-            console.error("Fitness Fetch Error:", e);
-        }
+            log("Sync Success: " + total + " steps");
+        } catch (e) { log("Sync Error. Try again."); }
     }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
         document.getElementById('h-bar').style.width = Math.min(100, (pet.steps/1000)*100) + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
-        localStorage.setItem('poke_v17_final', JSON.stringify(pet));
+        localStorage.setItem('poke_v18', JSON.stringify(pet));
     }
 
     document.getElementById('sync-btn').onclick = () => {
@@ -142,14 +102,7 @@
         tokenClient.requestAccessToken({ prompt: 'select_account' }); 
     };
 
-    document.getElementById('feed-btn').onclick = () => { 
-        pet.f = Math.min(100, pet.f + 10); updateUI(); 
-    };
-    
-    document.getElementById('sleep-btn').onclick = () => { 
-        log("Resting..."); 
-    };
-
+    document.getElementById('feed-btn').onclick = () => { pet.f = Math.min(100, pet.f + 10); updateUI(); };
 </script>
 </body>
 </html>
