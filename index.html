@@ -6,39 +6,138 @@
     <title>Poke Fitness</title>
     <style>
         :root { --pika-yellow: #ffcc00; --bg: #000; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        #watch-face { width: 98vw; height: 98vw; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 2px solid #222; }
-        #brand-tag { font-size: 10px; color: var(--pika-yellow); font-weight: bold; text-transform: uppercase; margin-top: 10px; }
-        #top-stats { font-size: 11px; font-weight: bold; margin: 5px 0; }
-        #pet-display { height: 28%; margin: 5px 0; }
-        #pet-img { height: 100%; image-rendering: pixelated; }
-        .bar-bg { width: 70%; height: 8px; background: #111; border-radius: 4px; border: 1px solid #333; overflow: hidden; margin: 2px 0; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.8s ease; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; width: 85%; gap: 10px; margin-top: 15px; }
-        button { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px 0; border-radius: 25px; font-size: 10px; font-weight: bold; }
-        #sync-btn { grid-column: span 2; background: #0c330c; color: #0f0; border: 1px solid #0f0; }
-        #log-screen { position: absolute; bottom: 12%; font-size: 8px; color: #ff4757; width: 80%; text-align: center; }
+        
+        /* Reset browser defaults to force perfect centering */
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: var(--bg); 
+            overflow: hidden;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-family: sans-serif; 
+        }
+
+        /* The container for all watch elements */
+        #watch-face { 
+            width: 92vw; 
+            height: 92vw; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            position: relative; 
+            text-align: center;
+        }
+
+        #brand-tag { 
+            font-size: 10px; 
+            color: var(--pika-yellow); 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            margin-bottom: 4px; 
+        }
+        
+        #top-stats { 
+            font-size: 11px; 
+            font-weight: bold; 
+            margin-bottom: 8px; 
+            color: #fff;
+        }
+        
+        #pet-display { 
+            height: 28%; 
+            margin-bottom: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        #pet-img { 
+            height: 100%; 
+            image-rendering: pixelated; 
+        }
+        
+        .bar-bg { 
+            width: 70%; 
+            height: 8px; 
+            background: #111; 
+            border-radius: 4px; 
+            border: 1px solid #333; 
+            overflow: hidden; 
+            margin: 2px 0; 
+        }
+        
+        .bar-fill { 
+            height: 100%; 
+            width: 0%; 
+            transition: width 0.8s ease; 
+        }
+
+        .controls { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            width: 85%; 
+            gap: 8px; 
+            margin-top: 12px; 
+        }
+        
+        button { 
+            background: #1a1a1a; 
+            border: 1px solid #333; 
+            color: white; 
+            padding: 10px 0; 
+            border-radius: 25px; 
+            font-size: 9px; 
+            font-weight: bold; 
+            outline: none;
+        }
+
+        #sync-btn { 
+            grid-column: span 2; 
+            background: #0c330c; 
+            color: #0f0; 
+            border: 1px solid #0f0; 
+        }
+        
+        #log-screen { 
+            font-size: 8px; 
+            color: #ff4757; 
+            margin-top: 8px; 
+            min-height: 10px; 
+            font-family: monospace; 
+        }
     </style>
 </head>
 <body>
 
-<div id="watch-face">
-    <div id="brand-tag">Poke Fitness</div>
-    <div id="top-stats">👟 <span id="cur-steps">0</span> / 1000</div>
-    <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
-    <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#0f0"></div></div>
-    <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
-    <div class="controls">
-        <button onclick="feed()">Eat</button><button onclick="log('Resting...')">Rest</button>
-        <button id="sync-btn" onclick="startSync()">Sync Official Steps</button>
+    <div id="watch-face">
+        <div id="brand-tag">Poke Fitness</div>
+        <div id="top-stats">👟 <span id="cur-steps">0</span> / 1000</div>
+        
+        <div id="pet-display">
+            <img id="pet-img" src="moderatehappiness.png">
+        </div>
+
+        <div class="bar-bg"><div id="h-bar" class="bar-fill" style="background:#0f0"></div></div>
+        <div class="bar-bg"><div id="f-bar" class="bar-fill" style="background:#ffa502"></div></div>
+
+        <div class="controls">
+            <button onclick="feed()">Eat</button>
+            <button onclick="log('Resting...')">Rest</button>
+            <button id="sync-btn" onclick="startSync()">Sync Official Steps</button>
+        </div>
+        
+        <div id="log-screen">Ready</div>
     </div>
-    <div id="log-screen">Ready</div>
-</div>
 
 <script>
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const REDIRECT_URI = 'https://pokefitness.github.io/';
-    let pet = JSON.parse(localStorage.getItem('poke_v20')) || { steps: 0, f: 80 };
+    let pet = JSON.parse(localStorage.getItem('poke_v21')) || { steps: 0, f: 80 };
 
     function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
@@ -49,18 +148,16 @@
         const token = params.get('access_token');
 
         if (token) {
-            log("Syncing...");
+            log("Syncing Cloud...");
             fetchSteps(token);
-            // Clear URL so we don't sync twice
+            // Clear URL hash to prevent accidental re-syncs
             window.history.replaceState(null, null, window.location.pathname);
         }
         updateUI();
     };
 
     function startSync() {
-        log("Redirecting...");
-        // This is the "Simple Way": A direct browser link. 
-        // No libraries, no complex scripts, just a direct jump to Google.
+        log("Connecting...");
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${CLIENT_ID}&` +
             `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
@@ -72,6 +169,7 @@
     }
 
     async function fetchSteps(token) {
+        // Local Southington Midnight calculation
         const midnight = new Date().setHours(0,0,0,0);
         try {
             const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
@@ -80,7 +178,8 @@
                 body: JSON.stringify({
                     "aggregateBy": [{"dataTypeName": "com.google.step_count.delta"}],
                     "bucketByTime": { "durationMillis": 86400000 },
-                    "startTimeMillis": midnight, "endTimeMillis": Date.now()
+                    "startTimeMillis": midnight, 
+                    "endTimeMillis": Date.now()
                 })
             });
             const data = await res.json();
@@ -88,17 +187,22 @@
             pet.steps = steps;
             updateUI();
             log("Sync Success: " + steps);
-        } catch (e) { log("Error fetching data."); }
+        } catch (e) { 
+            log("Data Fetch Error."); 
+        }
     }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
         document.getElementById('h-bar').style.width = Math.min(100, (pet.steps/1000)*100) + '%';
         document.getElementById('f-bar').style.width = pet.f + '%';
-        localStorage.setItem('poke_v20', JSON.stringify(pet));
+        localStorage.setItem('poke_v21', JSON.stringify(pet));
     }
 
-    function feed() { pet.f = Math.min(100, pet.f + 10); updateUI(); }
+    function feed() { 
+        pet.f = Math.min(100, pet.f + 10); 
+        updateUI(); 
+    }
 </script>
 </body>
 </html>
