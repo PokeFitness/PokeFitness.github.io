@@ -5,124 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Poke Fitness</title>
     <style>
-        :root { 
-            --pika-yellow: #ffcc00; 
-            --frame-gold: #c6a04e;
-            --btn-gold: #a6843c;
-        }
-        
-        html, body { 
-            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-            display: flex; justify-content: center; align-items: center; 
-            font-family: 'Courier New', Courier, monospace;
-            background: #000; 
-        }
-
+        :root { --pika-yellow: #ffcc00; --frame-gold: #c6a04e; --btn-gold: #a6843c; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', Courier, monospace; background: #000; }
         #watch-face { 
-            width: 100vw; 
-            height: 100vw; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            position: relative; 
-            /* THE BACKGROUND IMAGE FIX */
-            background-image: url('46225.jpg'); 
-            background-size: cover;
-            background-position: center;
+            width: 100vw; height: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; 
+            background-image: url('46225.jpg'); background-size: cover; background-position: center;
         }
-
-        #brand-tag { 
-            font-size: 11px; color: var(--pika-yellow); font-weight: bold; 
-            text-transform: uppercase; margin-bottom: 2px;
-            text-shadow: 1px 1px 2px #000;
-        }
-        
-        #top-stats { 
-            font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #fff;
-            text-shadow: 1px 1px 2px #000;
-        }
-        
-        #pet-display { 
-            height: 32%; margin-bottom: 12px; display: flex; 
-            align-items: center; justify-content: center;
-            background: rgba(0, 0, 0, 0.2);
-            border: 3px solid var(--frame-gold);
-            padding: 4px; border-radius: 4px;
-        }
-        
+        #brand-tag { font-size: 11px; color: var(--pika-yellow); font-weight: bold; text-transform: uppercase; margin-bottom: 2px; text-shadow: 1px 1px 2px #000; }
+        #top-stats { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #fff; text-shadow: 1px 1px 2px #000; }
+        #pet-display { height: 32%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.2); border: 3px solid var(--frame-gold); padding: 4px; border-radius: 4px; }
         #pet-img { height: 100%; image-rendering: pixelated; }
-
-        .controls { 
-            display: flex; justify-content: space-around; width: 90%; 
-            align-items: flex-end; margin-top: 5px;
-        }
-        
-        /* Circular Buttons for Eat/Rest */
-        .circle-btn { 
-            background: var(--btn-gold); border: 2px solid #fff;
-            color: #fff; width: 45px; height: 45px; border-radius: 50%;
-            font-size: 10px; font-weight: bold; display: flex;
-            align-items: center; justify-content: center;
-            box-shadow: 0 4px #666;
-        }
-        
-        .circle-btn:active { box-shadow: 0 2px #666; transform: translateY(2px); }
-
-        /* Large Circular Sync Button */
-        #sync-btn { 
-            background: #115511; border: 3px solid #0f0;
-            color: #fff; width: 70px; height: 70px; border-radius: 50%;
-            font-size: 11px; font-weight: bold; text-align: center;
-            line-height: 1.1; margin: 0 5px;
-        }
-        
-        #log-screen { 
-            font-size: 9px; color: var(--pika-yellow); margin-top: 10px; 
-            font-weight: bold; text-shadow: 1px 1px 1px #000;
-        }
+        .controls { display: flex; justify-content: space-around; width: 90%; align-items: flex-end; margin-top: 5px; }
+        .circle-btn { background: var(--btn-gold); border: 2px solid #fff; color: #fff; width: 45px; height: 45px; border-radius: 50%; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px #666; }
+        #sync-btn { background: #115511; border: 3px solid #0f0; color: #fff; width: 70px; height: 70px; border-radius: 50%; font-size: 11px; font-weight: bold; text-align: center; line-height: 1.1; margin: 0 5px; }
+        #log-screen { font-size: 9px; color: var(--pika-yellow); margin-top: 10px; font-weight: bold; text-shadow: 1px 1px 1px #000; }
     </style>
 </head>
 <body>
-
     <div id="watch-face">
         <div id="brand-tag">Poke Fitness</div>
         <div id="top-stats">👟 <span id="cur-steps">0</span> / 1000</div>
-        
-        <div id="pet-display">
-            <img id="pet-img" src="moderatehappiness.png">
-        </div>
-
+        <div id="pet-display"><img id="pet-img" src="moderatehappiness.png"></div>
         <div class="controls">
             <button class="circle-btn" onclick="feed()">Eat</button>
             <button id="sync-btn" onclick="startSync()">Sync<br>Steps</button>
             <button class="circle-btn" onclick="log('Resting...')">Rest</button>
         </div>
-        
-        <div id="log-screen">Ready</div>
+        <div id="log-screen">Checking...</div>
     </div>
 
 <script>
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const REDIRECT_URI = 'https://pokefitness.github.io/';
-    let pet = JSON.parse(localStorage.getItem('poke_v23')) || { steps: 0, f: 80 };
+    
+    // Using a new storage key to avoid conflicts
+    let pet = JSON.parse(localStorage.getItem('poke_v24_auto')) || { steps: 0, token: null };
 
     function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
     window.onload = () => {
+        // 1. Check if we just returned from Google with a new token
         const params = new URLSearchParams(window.location.hash.substring(1));
-        const token = params.get('access_token');
-        if (token) {
-            log("Updating...");
-            fetchSteps(token);
+        const newToken = params.get('access_token');
+
+        if (newToken) {
+            pet.token = newToken;
+            saveData();
             window.history.replaceState(null, null, window.location.pathname);
+            fetchSteps(newToken);
+        } 
+        // 2. If no new token, check if we have a saved one from earlier
+        else if (pet.token) {
+            log("Auto-Syncing...");
+            fetchSteps(pet.token);
+        } else {
+            log("Ready.");
         }
         updateUI();
     };
 
     function startSync() {
-        log("Connecting...");
-        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=https://www.googleapis.com/auth/fitness.activity.read&prompt=consent`;
+        log("Redirecting...");
+        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=https://www.googleapis.com/auth/fitness.activity.read&prompt=select_account`;
     }
 
     async function fetchSteps(token) {
@@ -137,20 +81,34 @@
                     "startTimeMillis": midnight, "endTimeMillis": Date.now()
                 })
             });
+            
+            if (res.status === 401) {
+                log("Token Expired. Tap Sync.");
+                pet.token = null;
+                saveData();
+                return;
+            }
+
             const data = await res.json();
             const steps = data.bucket[0].dataset[0].point[0]?.value[0]?.intVal || 0;
             pet.steps = steps;
             updateUI();
-            log("Sync: " + steps);
-        } catch (e) { log("Error Syncing"); }
+            log("Last Sync: " + steps);
+        } catch (e) { 
+            log("Connection Error."); 
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('poke_v24_auto', JSON.stringify(pet));
     }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
-        localStorage.setItem('poke_v23', JSON.stringify(pet));
+        saveData();
     }
 
-    function feed() { pet.f = Math.min(100, pet.f + 10); log("Yum!"); }
+    function feed() { log("Yum!"); }
 </script>
 </body>
 </html>
