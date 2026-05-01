@@ -5,48 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Poke Fitness</title>
     <style>
-        :root { --pika-yellow: #ffcc00; --frame-gold: #c6a04e; --btn-gold: #a6843c; --bg-forest: #224422; /* Fallback Color */ }
+        :root { --pika-yellow: #ffcc00; --frame-gold: #c6a04e; --btn-gold: #a6843c; }
         
-        /* Centering and Full-Screen Logic */
-        html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', Courier, monospace; }
+        html, body { 
+            margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; 
+            display: flex; justify-content: center; align-items: center; 
+            font-family: 'Courier New', Courier, monospace; background: #000; 
+        }
 
-        /* The Watch Container and THE BACKGROUND IMAGE FIX */
         #watch-face { 
-            width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; text-align: center;
-            /* Updated with background-image and cover for proper Watch 4 scaling */
-            background-image: url('46225.jpg');
+            width: 100vw; height: 100vh; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; position: relative; 
+            /* UPDATED FILENAME */
+            background-image: url('magical-forest-clearing-with-sunbeams-and-crystal-photo.jpg');
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
-            background-color: var(--bg-forest); /* fallback while loading */
+            background-attachment: fixed;
         }
 
         #brand-tag { font-size: 11px; color: var(--pika-yellow); font-weight: bold; text-transform: uppercase; margin-bottom: 2px; text-shadow: 2px 2px 2px #000; }
         #top-stats { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #fff; text-shadow: 2px 2px 2px #000; }
         
-        #pet-display { height: 30%; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.4); border: 3px solid var(--frame-gold); padding: 4px; border-radius: 4px; }
+        #pet-display { 
+            height: 30%; margin-bottom: 8px; display: flex; 
+            align-items: center; justify-content: center;
+            background: rgba(0, 0, 0, 0.4); border: 3px solid var(--frame-gold); 
+            padding: 4px; border-radius: 4px;
+        }
         #pet-img { height: 100%; image-rendering: pixelated; }
 
-        /* Hunger/Energy Bars */
         .bar-container { width: 75%; margin-bottom: 8px; }
         .bar-bg { width: 100%; height: 10px; background: rgba(0,0,0,0.6); border-radius: 5px; border: 1px solid #333; overflow: hidden; margin-bottom: 4px; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.8s ease; }
 
         .controls { display: flex; justify-content: space-around; width: 95%; align-items: center; margin-top: 5px; }
         
-        /* Gold Circular Buttons from Reference Image */
-        .circle-btn { background: var(--btn-gold); border: 2px solid #fff; color: #fff; width: 50px; height: 50px; border-radius: 50%; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px #000; -webkit-tap-highlight-color: transparent; }
-        .circle-btn:active { box-shadow: 0 2px #000; transform: translateY(2px); }
+        .circle-btn { 
+            background: var(--btn-gold); border: 2px solid #fff; color: #fff; 
+            width: 50px; height: 50px; border-radius: 50%; font-size: 10px; 
+            font-weight: bold; display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px #000; -webkit-tap-highlight-color: transparent; 
+        }
 
-        /* The Main Sync Button from reference image */
-        #sync-btn { background: #115511; border: 3px solid #0f0; color: #fff; width: 75px; height: 75px; border-radius: 50%; font-size: 12px; font-weight: bold; text-align: center; line-height: 1.1; box-shadow: 0 4px #000; -webkit-tap-highlight-color: transparent; }
-        #sync-btn:active { box-shadow: 0 2px #000; transform: translateY(2px); }
+        #sync-btn { 
+            background: #115511; border: 3px solid #0f0; color: #fff; 
+            width: 75px; height: 75px; border-radius: 50%; font-size: 12px; 
+            font-weight: bold; text-align: center; line-height: 1.1; 
+            box-shadow: 0 4px #000;
+        }
         
         #log-screen { font-size: 10px; color: var(--pika-yellow); margin-top: 10px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
     </style>
 </head>
 <body>
-
     <div id="watch-face">
         <div id="brand-tag">Poke Fitness</div>
         <div id="top-stats">👟 <span id="cur-steps">0</span> | 🍎 <span id="apple-count">0</span></div>
@@ -65,7 +77,6 @@
             <button id="sync-btn" onclick="startSync()">Sync<br>Steps</button>
             <button class="circle-btn" onclick="log('Resting...')">Rest</button>
         </div>
-        
         <div id="log-screen">Ready</div>
     </div>
 
@@ -73,40 +84,31 @@
     const CLIENT_ID = '191837762219-50h7a583d6eluh9scu6d3geek44n7vp1.apps.googleusercontent.com';
     const REDIRECT_URI = 'https://pokefitness.github.io/';
     
-    // V27 Includes State Persistence (saves apples and hunger even if closed)
-    let pet = JSON.parse(localStorage.getItem('poke_v27_stable')) || { steps: 0, apples: 0, hunger: 80, energy: 50, token: null };
+    // Using a new storage key to ensure a clean UI load
+    let pet = JSON.parse(localStorage.getItem('poke_v28_final')) || { 
+        steps: 0, apples: 0, hunger: 80, energy: 50, token: null 
+    };
 
     function log(msg) { document.getElementById('log-screen').innerText = msg; }
 
-    // Automatic Background Sync on load
     window.onload = () => {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        const token = params.get('access_token');
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const newToken = params.get('access_token');
 
-        if (token) {
-            pet.token = token; // Save token for future automatic syncs
+        if (newToken) {
+            pet.token = newToken;
             saveData();
             window.history.replaceState(null, null, window.location.pathname);
-            fetchSteps(token);
+            fetchSteps(newToken);
         } else if (pet.token) {
-            log("Auto-Updating...");
             fetchSteps(pet.token);
         }
         updateUI();
     };
 
     function startSync() {
-        log("Redirecting...");
-        // Bypassing the faulty Google library and using a direct REST API login URL
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
-            `response_type=token&` +
-            `scope=https://www.googleapis.com/auth/fitness.activity.read&` +
-            `prompt=consent`;
-        
-        window.location.href = authUrl;
+        log("Connecting...");
+        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=https://www.googleapis.com/auth/fitness.activity.read&prompt=select_account`;
     }
 
     async function fetchSteps(token) {
@@ -123,7 +125,7 @@
             });
             
             if (res.status === 401) {
-                log("Expired. Tap Sync.");
+                log("Token Expired.");
                 return;
             }
 
@@ -131,19 +133,15 @@
             const steps = data.bucket[0].dataset[0].point[0]?.value[0]?.intVal || 0;
             
             pet.steps = steps;
-            pet.apples = Math.floor(steps / 500); // 1 apple earned for every 500 steps
-            pet.energy = Math.min(100, (steps / 1000) * 100); // 1000 steps fills the energy bar
+            pet.apples = Math.floor(steps / 500);
+            pet.energy = Math.min(100, (steps / 1000) * 100);
             
             updateUI();
-            log("Last Sync: " + steps);
-        } catch (e) { 
-            log("Fetch Error."); 
-        }
+            log("Sync Complete!");
+        } catch (e) { log("Data Error."); }
     }
 
-    function saveData() {
-        localStorage.setItem('poke_v27_stable', JSON.stringify(pet));
-    }
+    function saveData() { localStorage.setItem('poke_v28_final', JSON.stringify(pet)); }
 
     function updateUI() {
         document.getElementById('cur-steps').innerText = pet.steps;
@@ -156,8 +154,8 @@
     function feed() { 
         if (pet.apples > 0) {
             pet.apples--;
-            pet.hunger = Math.min(100, pet.hunger + 20); // Each apple gives 20 Hunger
-            log("Yum! -1 Apple");
+            pet.hunger = Math.min(100, pet.hunger + 20);
+            log("-1 Apple");
             updateUI();
         } else {
             log("Need 500 steps!");
